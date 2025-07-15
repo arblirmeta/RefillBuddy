@@ -30,7 +30,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance(); // firebase setup
 
-        // get ui elements
+        // ui elemente holen
         emailInput = findViewById(R.id.emailField);
         passwordInput = findViewById(R.id.passwordField);
         confirmPasswordInput = findViewById(R.id.confirmPasswordField);
@@ -49,7 +49,7 @@ public class RegisterActivity extends AppCompatActivity {
         loginText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // go back to login
+                // zurück zu login
                 finish();
             }
         });
@@ -63,31 +63,31 @@ public class RegisterActivity extends AppCompatActivity {
 
         Log.d("RegisterActivity", "Registering user with email: " + email);
 
-        // check empty fields
+        // prüfe leere felder
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
             Toast.makeText(this, "alle felder ausfüllen", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // check email format
+        // prüfe email format
         if (!email.contains("@")) {
             Toast.makeText(this, "email format ist falsch", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // check password match
+        // prüfe passwort übereinstimmung
         if (!password.equals(confirmPassword)) {
             Toast.makeText(this, "passwörter sind nicht gleich", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // check password length
+        // prüfe passwort länge
         if (password.length() < 6) {
             Toast.makeText(this, "passwort zu kurz (mindestens 6 zeichen)", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // show progress
+        // progress anzeigen
         registerProgress.setVisibility(View.VISIBLE);
         
         // firebase register
@@ -96,17 +96,17 @@ public class RegisterActivity extends AppCompatActivity {
                     registerProgress.setVisibility(View.GONE);
                     
                     if (task.isSuccessful()) {
-                        // registration success
+                        // registrierung erfolgreich
                         FirebaseUser user = mAuth.getCurrentUser();
                         Log.d("RegisterActivity", "Registration successful!");
                         Toast.makeText(this, "account erstellt!", Toast.LENGTH_SHORT).show();
                         
-                        // go to main activity
+                        // gehe zu main activity
                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                         startActivity(intent);
                         finish();
                     } else {
-                        // registration failed
+                        // registrierung fehlgeschlagen
                         Log.e("RegisterActivity", "Registration failed: " + task.getException().getMessage());
                         Toast.makeText(this, "registrierung fehlgeschlagen. nochmal versuchen.", 
                                 Toast.LENGTH_SHORT).show();

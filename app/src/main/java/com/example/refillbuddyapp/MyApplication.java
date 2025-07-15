@@ -3,8 +3,8 @@ package com.example.refillbuddyapp;
 import android.app.Application;
 import com.google.firebase.FirebaseApp;
 
-// application class
-public class RefillBuddyApplication extends Application {
+// main application class
+public class MyApplication extends Application {
     
     @Override
     public void onCreate() {

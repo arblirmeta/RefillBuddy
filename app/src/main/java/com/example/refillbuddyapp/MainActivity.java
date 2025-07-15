@@ -2,6 +2,7 @@ package com.example.refillbuddyapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,7 +20,6 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private BottomNavigationView bottomNavigation;
     private TextView toolbarTitle;
-    private Button exploreBtn;
     // TODO: add more features later
 
     @Override
@@ -29,14 +29,13 @@ public class MainActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance(); // firebase
 
-        // setup toolbar
+        // toolbar setup
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbarTitle = findViewById(R.id.toolbarTitle);
 
-        // get elements
+        // elemente holen
         bottomNavigation = findViewById(R.id.bottomNavigation);
-        exploreBtn = findViewById(R.id.exploreButton);
 
         // bottom navigation click
         bottomNavigation.setOnItemSelectedListener(item -> {
@@ -61,55 +60,59 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        // explore button click
-        exploreBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // show home screen
-                bottomNavigation.setSelectedItemId(R.id.nav_home);
-                showHomeScreen();
-            }
-        });
+        // direkt karte laden
+        bottomNavigation.setSelectedItemId(R.id.nav_home);
+        showHomeScreen();
     }
 
-    // show home screen
+    // home screen zeigen
     private void showHomeScreen() {
         toolbarTitle.setText("RefillBuddy - Karte");
-        Toast.makeText(this, "karte wird geladen...", Toast.LENGTH_SHORT).show();
-        // TODO: fragment laden
+        
+        // map fragment laden
+        MapFragment mapFragment = new MapFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.contentContainer, mapFragment)
+                .commit();
+                
+        Log.d("MainActivity", "Map fragment loaded");
     }
 
-    // show list screen
+    // list screen zeigen
     private void showListScreen() {
         toolbarTitle.setText("RefillBuddy - Liste");
-        Toast.makeText(this, "liste wird geladen...", Toast.LENGTH_SHORT).show();
-        // TODO: fragment laden
+        
+        Toast.makeText(this, "liste kommt später...", Toast.LENGTH_SHORT).show();
+        // TODO: ListFragment machen
     }
 
-    // show favorites screen
+    // favorites screen zeigen
     private void showFavoritesScreen() {
         toolbarTitle.setText("RefillBuddy - Favoriten");
-        Toast.makeText(this, "favoriten werden geladen...", Toast.LENGTH_SHORT).show();
-        // TODO: fragment laden
+        
+        Toast.makeText(this, "favoriten noch nicht fertig", Toast.LENGTH_SHORT).show();
+        // TODO: FavoritesFragment machen
     }
 
-    // show add screen
+    // add screen zeigen
     private void showAddScreen() {
         toolbarTitle.setText("RefillBuddy - Hinzufügen");
-        Toast.makeText(this, "hinzufügen screen...", Toast.LENGTH_SHORT).show();
-        // TODO: fragment laden
+        
+        Toast.makeText(this, "hinzufügen später implementieren", Toast.LENGTH_SHORT).show();
+        // TODO: AddFragment machen
     }
 
-    // show profile screen
+    // profile screen zeigen
     private void showProfileScreen() {
         toolbarTitle.setText("RefillBuddy - Profil");
-        Toast.makeText(this, "profil wird geladen...", Toast.LENGTH_SHORT).show();
-        // TODO: fragment laden
+        
+        Toast.makeText(this, "profil noch nicht da", Toast.LENGTH_SHORT).show();
+        // TODO: ProfileFragment machen
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // menu inflaten
+        // menü inflaten
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
     }
@@ -120,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             // logout
             mAuth.signOut();
             Toast.makeText(this, "abgemeldet", Toast.LENGTH_SHORT).show();
-            // back to login
+            // zurück zu login
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
             startActivity(intent);
             finish();

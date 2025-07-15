@@ -60,10 +60,10 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // check if user is already logged in
+        // prüfe ob user schon eingeloggt ist
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-            // user is logged in, go to main
+            // user ist eingeloggt, gehe zu main
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivity(intent);
             finish();
@@ -77,19 +77,19 @@ public class LoginActivity extends AppCompatActivity {
 
         Log.d("LoginActivity", "Trying to login with email: " + email);
 
-        // check if fields are empty
+        // prüfe ob felder leer sind
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
             Toast.makeText(this, "bitte email und passwort eingeben", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // simple email check
+        // einfache email prüfung
         if (!email.contains("@")) {
             Toast.makeText(this, "email format falsch", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // show progress bar
+        // progress bar anzeigen
         loginProgress.setVisibility(View.VISIBLE);
         
         // firebase login
@@ -98,17 +98,17 @@ public class LoginActivity extends AppCompatActivity {
                     loginProgress.setVisibility(View.GONE);
                     
                     if (task.isSuccessful()) {
-                        // login success
+                        // login erfolgreich
                         FirebaseUser user = mAuth.getCurrentUser();
                         Log.d("LoginActivity", "Login successful for user: " + user.getEmail());
                         Toast.makeText(this, "login erfolgreich!", Toast.LENGTH_SHORT).show();
                         
-                        // go to main activity
+                        // gehe zu main activity
                         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                         startActivity(intent);
                         finish();
                     } else {
-                        // login failed
+                        // login fehlgeschlagen
                         Log.e("LoginActivity", "Login failed: " + task.getException().getMessage());
                         Toast.makeText(this, "login fehler. versuche nochmal.", 
                                 Toast.LENGTH_SHORT).show();
