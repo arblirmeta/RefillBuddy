@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935623699922",
+    "project_id": "refillbuddyapp",
+    "storage_bucket": "refillbuddyapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935623699922:android:e4f19c654f49b80bfdac0b",
+        "android_client_info": {
+          "package_name": "com.example.refillbuddyapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrzlzxbcKw3m2lE4Jt12r_ghfBvAL10Tg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
