@@ -3,8 +3,6 @@ package com.example.refillbuddyapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -14,12 +12,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-// register activity
+// register activity für neue accounts
 public class RegisterActivity extends AppCompatActivity {
 
+    // ui elemente für registrierung
     private EditText emailInput, passwordInput, confirmPasswordInput;
     private ProgressBar registerProgress;
-    private FirebaseAuth mAuth; // firebase auth
+    private FirebaseAuth mAuth; // firebase authentication
     private Button registerBtn;
     private TextView loginText;
 
@@ -28,9 +27,10 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        mAuth = FirebaseAuth.getInstance(); // firebase setup
+        // firebase auth initialisieren
+        mAuth = FirebaseAuth.getInstance();
 
-        // ui elemente holen
+        // alle ui elemente finden
         emailInput = findViewById(R.id.emailField);
         passwordInput = findViewById(R.id.passwordField);
         confirmPasswordInput = findViewById(R.id.confirmPasswordField);
@@ -38,79 +38,68 @@ public class RegisterActivity extends AppCompatActivity {
         registerBtn = findViewById(R.id.registerButton);
         loginText = findViewById(R.id.loginLink);
 
-        // button clicks
-        registerBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                registerUser();
-            }
-        });
-        
-        loginText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // zurück zu login
-                finish();
-            }
+        // button events
+        registerBtn.setOnClickListener(v -> registerUser());
+        loginText.setOnClickListener(v -> {
+            // zurück zum login
+            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+            startActivity(intent);
         });
     }
 
-    // register function
+    // neuen user registrieren
     private void registerUser() {
+        // text aus den feldern holen
         String email = emailInput.getText().toString().trim();
         String password = passwordInput.getText().toString().trim();
         String confirmPassword = confirmPasswordInput.getText().toString().trim();
 
-        Log.d("RegisterActivity", "Registering user with email: " + email);
-
-        // prüfe leere felder
+        // prüfen ob alle felder ausgefüllt sind
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
-            Toast.makeText(this, "alle felder ausfüllen", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "bitte alle felder ausfüllen", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // prüfe email format
-        if (!email.contains("@")) {
-            Toast.makeText(this, "email format ist falsch", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // prüfe passwort übereinstimmung
+        // passwörter müssen gleich sein
         if (!password.equals(confirmPassword)) {
-            Toast.makeText(this, "passwörter sind nicht gleich", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "passwörter stimmen nicht überein", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // prüfe passwort länge
+        // passwort muss mindestens 6 zeichen haben (firebase regel)
         if (password.length() < 6) {
-            Toast.makeText(this, "passwort zu kurz (mindestens 6 zeichen)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "passwort muss mindestens 6 zeichen haben", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // progress anzeigen
-        registerProgress.setVisibility(View.VISIBLE);
-        
-        // firebase register
+        // progress bar anzeigen
+        showProgress(true);
+
+        // firebase registrierung versuchen
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
-                    registerProgress.setVisibility(View.GONE);
+                    // progress bar verstecken
+                    showProgress(false);
                     
                     if (task.isSuccessful()) {
-                        // registrierung erfolgreich
+                        // registrierung erfolgreich!
                         FirebaseUser user = mAuth.getCurrentUser();
-                        Log.d("RegisterActivity", "Registration successful!");
-                        Toast.makeText(this, "account erstellt!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this, "konto erstellt!", Toast.LENGTH_SHORT).show();
                         
-                        // gehe zu main activity
+                        // direkt zur main activity
                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                         startActivity(intent);
                         finish();
                     } else {
                         // registrierung fehlgeschlagen
-                        Log.e("RegisterActivity", "Registration failed: " + task.getException().getMessage());
-                        Toast.makeText(this, "registrierung fehlgeschlagen. nochmal versuchen.", 
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this, "registrierung fehlgeschlagen", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    // progress bar anzeigen/verstecken
+    private void showProgress(boolean show) {
+        registerProgress.setVisibility(show ? ProgressBar.VISIBLE : ProgressBar.GONE);
+        registerBtn.setEnabled(!show); // button deaktivieren während loading
     }
 }

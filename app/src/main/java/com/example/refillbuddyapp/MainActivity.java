@@ -2,11 +2,8 @@ package com.example.refillbuddyapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,33 +11,37 @@ import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
-    // main activity
+// das ist die hauptaktivität meiner app
 public class MainActivity extends AppCompatActivity {
 
+    // firebase für login/logout
     private FirebaseAuth mAuth;
+    // bottom navigation wie in der vorlesung
     private BottomNavigationView bottomNavigation;
+    // toolbar titel ändern
     private TextView toolbarTitle;
-    // TODO: add more features later
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAuth = FirebaseAuth.getInstance(); // firebase
+        // firebase initialisieren
+        mAuth = FirebaseAuth.getInstance();
 
-        // toolbar setup
+        // toolbar aufsetzen (toolbar ist besser als actionbar)
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbarTitle = findViewById(R.id.toolbarTitle);
 
-        // elemente holen
+        // bottom navigation finden
         bottomNavigation = findViewById(R.id.bottomNavigation);
 
-        // bottom navigation click
+        // hier passiert die navigation - lambda expressions sind cool
         bottomNavigation.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             
+            // je nach tab verschiedene screens zeigen
             if (itemId == R.id.nav_home) {
                 showHomeScreen();
                 return true;
@@ -48,83 +49,82 @@ public class MainActivity extends AppCompatActivity {
                 showListScreen();
                 return true;
             } else if (itemId == R.id.nav_favorites) {
-                showFavoritesScreen();
+                showFavoritesScreen(); // noch nicht implementiert
                 return true;
             } else if (itemId == R.id.nav_add) {
-                showAddScreen();
+                showAddScreen(); // TODO: später machen
                 return true;
             } else if (itemId == R.id.nav_profile) {
-                showProfileScreen();
+                showProfileScreen(); // auch noch nicht fertig
                 return true;
             }
             return false;
         });
 
-        // direkt karte laden
-        bottomNavigation.setSelectedItemId(R.id.nav_home);
+        // direkt die karte laden beim start
         showHomeScreen();
+        bottomNavigation.setSelectedItemId(R.id.nav_home);
     }
 
-    // home screen zeigen
+    // karte anzeigen (home screen)
     private void showHomeScreen() {
-        toolbarTitle.setText("RefillBuddy - Karte");
+        toolbarTitle.setText("RefillBuddy");
         
-        // map fragment laden
+        // fragment erstellen und laden
         MapFragment mapFragment = new MapFragment();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.contentContainer, mapFragment)
                 .commit();
-                
-        Log.d("MainActivity", "Map fragment loaded");
     }
 
-    // list screen zeigen
+    // liste anzeigen
     private void showListScreen() {
-        toolbarTitle.setText("RefillBuddy - Liste");
+        toolbarTitle.setText("- Liste");
         
-        Toast.makeText(this, "liste kommt später...", Toast.LENGTH_SHORT).show();
-        // TODO: ListFragment machen
+        // list fragment laden
+        ListFragment listFragment = new ListFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.contentContainer, listFragment)
+                .commit();
     }
 
-    // favorites screen zeigen
+    // favoriten screen (noch nicht implementiert)
     private void showFavoritesScreen() {
-        toolbarTitle.setText("RefillBuddy - Favoriten");
-        
-        Toast.makeText(this, "favoriten noch nicht fertig", Toast.LENGTH_SHORT).show();
-        // TODO: FavoritesFragment machen
+        toolbarTitle.setText("- Favoriten");
+        // placeholder toast
+        Toast.makeText(this, "favoriten kommt später...", Toast.LENGTH_SHORT).show();
     }
 
-    // add screen zeigen
+    // hinzufügen screen (auch noch nicht fertig)
     private void showAddScreen() {
-        toolbarTitle.setText("RefillBuddy - Hinzufügen");
-        
-        Toast.makeText(this, "hinzufügen später implementieren", Toast.LENGTH_SHORT).show();
-        // TODO: AddFragment machen
+        toolbarTitle.setText("- Hinzufügen");
+        // placeholder toast
+        Toast.makeText(this, "hinzufügen kommt später...", Toast.LENGTH_SHORT).show();
     }
 
-    // profile screen zeigen
+    // profil screen (kommt auch noch)
     private void showProfileScreen() {
-        toolbarTitle.setText("RefillBuddy - Profil");
-        
-        Toast.makeText(this, "profil noch nicht da", Toast.LENGTH_SHORT).show();
-        // TODO: ProfileFragment machen
+        toolbarTitle.setText("- Profil");
+        // placeholder toast
+        Toast.makeText(this, "profil kommt später...", Toast.LENGTH_SHORT).show();
     }
 
+    // menü erstellen (mit logout button)
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // menü inflaten
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
     }
 
+    // menü klicks behandeln
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_logout) {
-            // logout
+            // user ausloggen
             mAuth.signOut();
-            Toast.makeText(this, "abgemeldet", Toast.LENGTH_SHORT).show();
-            // zurück zu login
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            // zurück zum login und alle anderen activities schließen
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
             return true;
