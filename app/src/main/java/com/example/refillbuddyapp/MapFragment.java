@@ -1,5 +1,7 @@
 package com.example.refillbuddyapp;
 
+import android.Manifest;
+import android.location.Location;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,25 +9,32 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.List;
 
-// fragment für die karte
+// Fragment: Google Maps mit Wasserstellen-Markern und GPS-Standort
 public class MapFragment extends Fragment implements OnMapReadyCallback {
     
     private GoogleMap mMap;
-    private FirebaseDataLoader dataLoader;
+    private MainActivity.FirebaseDataLoader dataLoader;
+    private MainActivity.LocationHelper locationHelper;
+    
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        dataLoader = new FirebaseDataLoader();
+        // Helper-Klassen initialisieren
+        dataLoader = new MainActivity.FirebaseDataLoader();
+        locationHelper = new MainActivity.LocationHelper(getContext());
     }
     
     @Nullable
@@ -38,74 +47,65 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
+        // Google Maps Fragment finden und initialisieren
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
+            mapFragment.getMapAsync(this); // onMapReady wird aufgerufen wenn bereit
         }
     }
     
-    // wird aufgerufen wenn die karte bereit ist
+    // Callback: Google Maps ist bereit → Setup durchführen
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         
-        // kamera auf berlin setzen
+        // Kamera auf Berlin zentrieren (Fallback)
         LatLng berlin = new LatLng(52.5200, 13.4050);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(berlin, 10));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(berlin, 12));
         
-        // zoom controls aktivieren
+        // Zoom-Controls aktivieren
         mMap.getUiSettings().setZoomControlsEnabled(true);
         
-        // wasserstellen laden
+        // GPS-Standort anzeigen (blauer Marker)
+        showCurrentLocation();
+        
+        // Wasserstellen von Firebase laden
         loadWaterStations();
     }
     
-    // fragment wird wieder sichtbar - daten neu laden
+    // Fragment wird wieder sichtbar → Daten neu laden
     @Override
     public void onResume() {
         super.onResume();
-        // wenn karte bereit ist, daten neu laden
         if (mMap != null) {
-            mMap.clear(); // alte marker löschen
-            loadWaterStations(); // neue daten laden
+            mMap.clear(); // Alte Marker löschen
+            showCurrentLocation(); // Standort neu anzeigen
+            loadWaterStations(); // Wasserstellen neu laden
         }
     }
     
-    // wasserstellen aus firebase laden
+    // Wasserstellen aus Firebase laden und auf Karte anzeigen
     private void loadWaterStations() {
-        dataLoader.loadWaterStations(new FirebaseDataLoader.DataLoadCallback() {
+        dataLoader.loadWaterStations(new MainActivity.FirebaseDataLoader.DataLoadCallback() {
             @Override
             public void onDataLoaded(List<WaterStationAdapter.WaterStation> waterStations) {
-                // alle wasserstellen als marker zur karte hinzufügen
-                addWaterStationsToMap(waterStations);
-                if (getContext() != null) {
-                    // debug: namen der wasserstellen anzeigen
-                    StringBuilder stationNames = new StringBuilder();
-                    for (int i = 0; i < Math.min(3, waterStations.size()); i++) {
-                        if (i > 0) stationNames.append(", ");
-                        stationNames.append(waterStations.get(i).getName());
-                    }
-                    Toast.makeText(getContext(), "🗺️ " + waterStations.size() + " stationen: " + stationNames.toString(), Toast.LENGTH_LONG).show();
-                }
+                addWaterStationsToMap(waterStations); // Marker zur Karte hinzufügen
             }
             
             @Override
             public void onError(Exception e) {
-                // wenn firebase nicht geht, beispiel daten zeigen
-                addFallbackWaterStations();
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "fallback: 3 beispiel stationen", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "❌ Fehler beim Laden der Wasserstellen", Toast.LENGTH_SHORT).show();
                 }
             }
         });
     }
     
-    // wasserstellen als marker zur karte hinzufügen
+    // Wasserstellen als rote Marker auf Karte anzeigen
     private void addWaterStationsToMap(List<WaterStationAdapter.WaterStation> waterStations) {
         for (WaterStationAdapter.WaterStation station : waterStations) {
-            // position aus lat/lng erstellen
             LatLng position = new LatLng(station.getLat(), station.getLng());
-            // marker hinzufügen
+            // Marker erstellen: Titel + Beschreibung beim Antippen
             mMap.addMarker(new MarkerOptions()
                     .position(position)
                     .title(station.getName())
@@ -113,41 +113,77 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
     
-    // fallback wenn firebase nicht funktioniert
-    private void addFallbackWaterStations() {
-        // alexanderplatz
-        LatLng alex = new LatLng(52.520008, 13.404954);
-        mMap.addMarker(new MarkerOptions()
-                .position(alex)
-                .title("Alexanderplatz Brunnen")
-                .snippet("Alexanderplatz 1, 10178 Berlin"));
 
-        // potsdamer platz
-        LatLng potsdamer = new LatLng(52.5096, 13.3765);
-        mMap.addMarker(new MarkerOptions()
-                .position(potsdamer)
-                .title("Potsdamer Platz Station")
-                .snippet("Potsdamer Platz 1, 10785 Berlin"));
-
-        // tiergarten
-        LatLng tiergarten = new LatLng(52.5144, 13.3501);
-        mMap.addMarker(new MarkerOptions()
-                .position(tiergarten)
-                .title("Tiergarten Wasserspender")
-                .snippet("Großer Tiergarten, 10557 Berlin"));
+    
+    // GPS-Standort als blauer Marker auf Karte anzeigen
+    private void showCurrentLocation() {
+        // GPS-Berechtigung prüfen
+        if (!locationHelper.hasLocationPermission()) {
+            requestLocationPermission(); // User nach Berechtigung fragen
+            return;
+        }
         
-        // hackescher markt
-        LatLng hackescher = new LatLng(52.5225, 13.4014);
-        mMap.addMarker(new MarkerOptions()
-                .position(hackescher)
-                .title("Hackescher Markt Brunnen")
-                .snippet("Hackescher Markt 2, 10178 Berlin"));
+        // GPS-Position abrufen
+        locationHelper.getCurrentLocation(new MainActivity.LocationHelper.LocationCallback() {
+            @Override
+            public void onLocationReceived(Location location) {
+                if (getContext() == null || mMap == null) return;
+                
+                // Blauen "Mein Standort" Marker hinzufügen
+                LatLng currentPosition = new LatLng(location.getLatitude(), location.getLongitude());
+                mMap.addMarker(new MarkerOptions()
+                        .position(currentPosition)
+                        .title("Mein Standort")
+                        .snippet("Hier bin ich!")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                
+                // Kamera auf Standort zentrieren (Zoom 14)
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentPosition, 14));
+                
+                Toast.makeText(getContext(), "📍 Standort gefunden!", Toast.LENGTH_SHORT).show();
+            }
+            
+            @Override
+            public void onLocationError(String error) {
+                if (getContext() == null) return;
+                Toast.makeText(getContext(), "GPS: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    // location permission anfordern
+    private void requestLocationPermission() {
+        String[] permissions = {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+        };
+        ActivityCompat.requestPermissions(requireActivity(), permissions, LOCATION_PERMISSION_REQUEST_CODE);
+    }
+    
+    // result von permission request
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         
-        // friedrichshain
-        LatLng friedrichshain = new LatLng(52.5132, 13.4553);
-        mMap.addMarker(new MarkerOptions()
-                .position(friedrichshain)
-                .title("Friedrichshain Wasserstelle")
-                .snippet("Boxhagener Straße 15, 10245 Berlin"));
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                // permission erhalten - standort anzeigen
+                showCurrentLocation();
+            } else {
+                // permission verweigert
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "GPS-Berechtigung benötigt für Standort", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
+    
+    // daten neu laden (wird von MainActivity aufgerufen)
+    public void reloadData() {
+        if (mMap != null) {
+            mMap.clear(); // alte marker löschen
+            showCurrentLocation(); // standort neu anzeigen  
+            loadWaterStations(); // wasserstellen neu laden
+        }
     }
 } 

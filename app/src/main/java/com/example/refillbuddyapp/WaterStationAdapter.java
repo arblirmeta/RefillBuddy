@@ -1,22 +1,28 @@
 package com.example.refillbuddyapp;
 
+import android.location.Location;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // adapter für das recyclerview (adapter pattern wie in der vorlesung)
 public class WaterStationAdapter extends RecyclerView.Adapter<WaterStationAdapter.ViewHolder> {
     
     // liste der wasserstellen
     private List<WaterStation> waterStations;
+    // map für berechnete entfernungen (position -> entfernung)
+    private Map<Integer, String> distanceMap;
     
     // konstruktor
     public WaterStationAdapter(List<WaterStation> waterStations) {
         this.waterStations = waterStations;
+        this.distanceMap = new HashMap<>();
     }
     
     @NonNull
@@ -33,13 +39,39 @@ public class WaterStationAdapter extends RecyclerView.Adapter<WaterStationAdapte
         WaterStation station = waterStations.get(position);
         holder.titleTextView.setText(station.getName());
         holder.descriptionTextView.setText(station.getDescription());
-        holder.distanceTextView.setText("in der Nähe"); // einfach statisch
+        
+        // entfernung anzeigen falls berechnet, sonst fallback
+        String distance = distanceMap.get(position);
+        if (distance != null) {
+            holder.distanceTextView.setText(distance);
+        } else {
+            holder.distanceTextView.setText("in der Nähe"); // fallback
+        }
     }
     
     @Override
     public int getItemCount() {
         // anzahl der items
         return waterStations.size();
+    }
+    
+    // entfernungen für alle wasserstellen aktualisieren
+    public void updateDistances(Location userLocation) {
+        if (userLocation == null) return;
+        
+        // für alle wasserstellen entfernung berechnen
+        for (int i = 0; i < waterStations.size(); i++) {
+            WaterStation station = waterStations.get(i);
+            double distance = MainActivity.LocationHelper.calculateDistance(
+                    userLocation.getLatitude(), userLocation.getLongitude(),
+                    station.getLat(), station.getLng()
+            );
+            // formatiert speichern
+            distanceMap.put(i, MainActivity.LocationHelper.formatDistance(distance));
+        }
+        
+        // recyclerview aktualisieren
+        notifyDataSetChanged();
     }
     
     // viewholder klasse (viewholder pattern)

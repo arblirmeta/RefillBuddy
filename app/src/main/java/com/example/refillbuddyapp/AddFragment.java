@@ -2,6 +2,7 @@ package com.example.refillbuddyapp;
 
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -18,180 +19,205 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-// fragment zum hinzufügen neuer wasserstellen
-// einfach name und adresse eingeben
+// Fragment: Neue Wasserstelle hinzufügen (mit GPS-Unterstützung)
 public class AddFragment extends Fragment {
-
-    // ui elemente
     private EditText nameField, descriptionField, addressField;
-    private Button addButton;
+    private Button addButton, gpsButton;
     private ProgressBar addProgress;
-    
-    // firebase data loader
-    private FirebaseDataLoader dataLoader;
+    private MainActivity.FirebaseDataLoader dataLoader;
+    private MainActivity.LocationHelper locationHelper;
+    private MainActivity mainActivity;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // data loader initialisieren
-        dataLoader = new FirebaseDataLoader();
+        // Helper-Klassen initialisieren
+        dataLoader = new MainActivity.FirebaseDataLoader();
+        locationHelper = new MainActivity.LocationHelper(getContext());
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // layout inflaten
         return inflater.inflate(R.layout.fragment_add, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        // alle ui elemente finden
+        
+        // UI-Elemente finden
         nameField = view.findViewById(R.id.nameField);
         descriptionField = view.findViewById(R.id.descriptionField);
         addressField = view.findViewById(R.id.addressField);
         addButton = view.findViewById(R.id.addButton);
+        gpsButton = view.findViewById(R.id.gpsButton);
         addProgress = view.findViewById(R.id.addProgress);
 
-        // button click event
+        // Button-Events setzen
         addButton.setOnClickListener(v -> addWaterStation());
+        gpsButton.setOnClickListener(v -> useCurrentLocation());
     }
 
-    // neue wasserstelle hinzufügen
+    // Neue Wasserstelle hinzufügen (Adresse → GPS → Firebase)
     private void addWaterStation() {
-        // text aus allen feldern holen
         String name = nameField.getText().toString().trim();
         String description = descriptionField.getText().toString().trim();
         String address = addressField.getText().toString().trim();
 
-        // prüfen ob alle felder ausgefüllt sind
+        // Input-Validation
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(description) || TextUtils.isEmpty(address)) {
-            Toast.makeText(getContext(), "bitte alle felder ausfüllen", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Alle Felder ausfüllen", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // progress bar anzeigen
         showProgress(true);
-
-        // echte koordinaten aus adresse mit geocoder holen
-        getCoordinatesFromAddress(address, new CoordinateCallback() {
-            @Override
-            public void onCoordinatesFound(double latitude, double longitude, boolean fromGeocoder) {
-                // progress bar verstecken
-                showProgress(false);
-                
-                // debug: koordinaten anzeigen
-                String source = fromGeocoder ? "(Geocoder)" : "(Fallback)";
-                Toast.makeText(getContext(), "📍 " + source + " " + String.format("%.4f, %.4f", latitude, longitude), Toast.LENGTH_SHORT).show();
-
-                // zu firebase hinzufügen
-                dataLoader.addWaterStation(name, address, latitude, longitude, new FirebaseDataLoader.DataLoadCallback() {
-                    @Override
-                    public void onDataLoaded(List<WaterStationAdapter.WaterStation> waterStations) {                        
-                        if (getContext() != null) {
-                            Toast.makeText(getContext(), "✅ " + name + " bei " + address + " hinzugefügt!", Toast.LENGTH_LONG).show();
-                            // felder leeren
-                            clearFields();
-                        }
+        // Schritt 1: Adresse zu GPS-Koordinaten konvertieren
+        getCoordinatesFromAddress(address, (latitude, longitude, fromGeocoder) -> {
+            showProgress(false);
+            // Schritt 2: Station zu Firebase hinzufügen
+            dataLoader.addWaterStation(name, address, latitude, longitude, new MainActivity.FirebaseDataLoader.DataLoadCallback() {
+                @Override
+                public void onDataLoaded(List<WaterStationAdapter.WaterStation> stations) {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "✅ " + name + " hinzugefügt!", Toast.LENGTH_SHORT).show();
+                        clearFields();
+                        // MainActivity benachrichtigen → andere Fragments updaten
+                        if (mainActivity != null) mainActivity.onWaterStationAdded();
                     }
+                }
 
-                    @Override
-                    public void onError(Exception e) {                        
-                        if (getContext() != null) {
-                            Toast.makeText(getContext(), "❌ firebase fehler: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        }
+                @Override
+                public void onError(Exception e) {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "❌ Fehler beim Speichern", Toast.LENGTH_SHORT).show();
                     }
-                });
-            }
+                }
+            });
         });
     }
 
     // progress bar anzeigen/verstecken
+    // Progress-Spinner an/aus (während Geocoding oder Firebase-Upload)
     private void showProgress(boolean show) {
         addProgress.setVisibility(show ? ProgressBar.VISIBLE : ProgressBar.GONE);
-        addButton.setEnabled(!show); // button während loading deaktivieren
+        addButton.setEnabled(!show); // Button während Laden deaktivieren
     }
 
-    // alle eingabefelder leeren
+    // Eingabefelder nach erfolgreichem Hinzufügen leeren
     private void clearFields() {
         nameField.setText("");
         descriptionField.setText("");
         addressField.setText("");
     }
     
-    // callback interface für koordinaten
+    // MainActivity-Referenz setzen (für Update-Callbacks)
+    public void setMainActivity(MainActivity activity) {
+        this.mainActivity = activity;
+    }
+    
+    // Callback für Geocoding-Ergebnisse
     private interface CoordinateCallback {
         void onCoordinatesFound(double latitude, double longitude, boolean fromGeocoder);
     }
     
-    // echte adresse zu koordinaten mit android geocoder (wie in android tutorials)
+    // Adresse zu GPS-Koordinaten konvertieren (Android Geocoder)
     private void getCoordinatesFromAddress(String addressStr, CoordinateCallback callback) {
-        // geocoder in hintergrund thread starten (kann langsam sein)
         new Thread(() -> {
             try {
                 Geocoder geocoder = new Geocoder(getContext(), Locale.GERMAN);
                 
-                // prüfen ob geocoder verfügbar ist
                 if (!Geocoder.isPresent()) {
-                    // fallback wenn geocoder nicht verfügbar
-                    getFallbackCoordinates(addressStr, callback);
+                    requireActivity().runOnUiThread(() -> 
+                        Toast.makeText(getContext(), "❌ Geocoder nicht verfügbar", Toast.LENGTH_SHORT).show());
                     return;
                 }
                 
-                // adresse zu koordinaten konvertieren
+                // Adresse suchen (+ ", Deutschland" für bessere Ergebnisse)
                 List<Address> addresses = geocoder.getFromLocationName(addressStr + ", Deutschland", 1);
                 
                 if (addresses != null && !addresses.isEmpty()) {
                     Address address = addresses.get(0);
-                    double lat = address.getLatitude();
-                    double lng = address.getLongitude();
-                    
-                    // zurück zum ui thread
-                    requireActivity().runOnUiThread(() -> {
-                        callback.onCoordinatesFound(lat, lng, true);
-                    });
+                    requireActivity().runOnUiThread(() -> 
+                        callback.onCoordinatesFound(address.getLatitude(), address.getLongitude(), true));
                 } else {
-                    // keine ergebnisse gefunden - fallback
-                    getFallbackCoordinates(addressStr, callback);
+                    requireActivity().runOnUiThread(() -> 
+                        Toast.makeText(getContext(), "❌ Adresse nicht gefunden", Toast.LENGTH_SHORT).show());
                 }
                 
             } catch (IOException e) {
-                // fehler beim geocoding - fallback verwenden
-                getFallbackCoordinates(addressStr, callback);
+                requireActivity().runOnUiThread(() -> 
+                    Toast.makeText(getContext(), "❌ Netzwerk-Fehler", Toast.LENGTH_SHORT).show());
             }
-        }).start();
+        }).start(); // Background-Thread für Netzwerk-Request
     }
     
-    // fallback methode wenn geocoder nicht funktioniert
-    private void getFallbackCoordinates(String address, CoordinateCallback callback) {
-        String addressLower = address.toLowerCase();
-        double lat, lng;
-        
-        // bekannte berlin adressen mappen
-        if (addressLower.contains("alexanderplatz")) {
-            lat = 52.5200; lng = 13.4050;
-        } else if (addressLower.contains("potsdamer platz") || addressLower.contains("potsdamer")) {
-            lat = 52.5094; lng = 13.3759;
-        } else if (addressLower.contains("tiergarten")) {
-            lat = 52.5144; lng = 13.3501;
-        } else if (addressLower.contains("hackescher markt") || addressLower.contains("hackescher")) {
-            lat = 52.5225; lng = 13.4014;
-        } else if (addressLower.contains("friedrichshain")) {
-            lat = 52.5132; lng = 13.4553;
-        } else if (addressLower.contains("brandenburger tor") || addressLower.contains("brandenburger")) {
-            lat = 52.5163; lng = 13.3777;
-        } else {
-            // für andere adressen: konsistente koordinaten in berlin
-            int hash = Math.abs(address.hashCode());
-            lat = 52.4500 + (hash % 1000) / 10000.0; // zwischen 52.45 und 52.55
-            lng = 13.2500 + (hash % 2000) / 10000.0; // zwischen 13.25 und 13.45
+    // GPS-Button: Aktuellen Standort als Adresse verwenden
+    private void useCurrentLocation() {
+        if (!locationHelper.hasLocationPermission()) {
+            Toast.makeText(getContext(), "GPS-Berechtigung benötigt", Toast.LENGTH_SHORT).show();
+            return;
         }
         
-        // zurück zum ui thread
-        requireActivity().runOnUiThread(() -> {
-            callback.onCoordinatesFound(lat, lng, false);
+        showProgress(true);
+        gpsButton.setEnabled(false);
+        gpsButton.setText("📍 Standort wird abgerufen...");
+        
+        // GPS-Position abrufen
+        locationHelper.getCurrentLocation(new MainActivity.LocationHelper.LocationCallback() {
+            @Override
+            public void onLocationReceived(Location location) {
+                if (getContext() == null) return;
+                showProgress(false);
+                resetGpsButton();
+                // GPS → Adresse konvertieren (Reverse Geocoding)
+                reverseGeocodeLocation(location);
+            }
+            
+            @Override
+            public void onLocationError(String error) {
+                if (getContext() == null) return;
+                showProgress(false);
+                resetGpsButton();
+                Toast.makeText(getContext(), "GPS-Fehler", Toast.LENGTH_SHORT).show();
+            }
         });
     }
-} 
+    
+    // GPS-Button in Normal-Zustand zurücksetzen
+    private void resetGpsButton() {
+        gpsButton.setEnabled(true);
+        gpsButton.setText("📍 Meinen Standort verwenden");
+    }
+    
+    // GPS-Koordinaten zu Adresse konvertieren (Reverse Geocoding)
+    private void reverseGeocodeLocation(Location location) {
+        new Thread(() -> {
+            // Fallback: GPS-Koordinaten als Text
+            String addressText = "GPS: " + String.format("%.6f, %.6f", location.getLatitude(), location.getLongitude());
+            
+            try {
+                Geocoder geocoder = new Geocoder(getContext(), Locale.GERMAN);
+                if (Geocoder.isPresent()) {
+                    // Koordinaten zu Adresse konvertieren
+                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        Address addr = addresses.get(0);
+                        String street = "";
+                        // Adresse zusammenbauen: Straße + Hausnummer + Stadt
+                        if (addr.getThoroughfare() != null) street += addr.getThoroughfare();
+                        if (addr.getSubThoroughfare() != null) street += " " + addr.getSubThoroughfare();
+                        if (addr.getLocality() != null) street += (street.isEmpty() ? "" : ", ") + addr.getLocality();
+                        if (!street.isEmpty()) addressText = street;
+                    }
+                }
+            } catch (IOException ignored) {} // Bei Fehler Fallback verwenden
+            
+            String finalText = addressText;
+            requireActivity().runOnUiThread(() -> {
+                addressField.setText(finalText); // Adresse in Eingabefeld einfügen
+                Toast.makeText(getContext(), "📍 Standort gesetzt", Toast.LENGTH_SHORT).show();
+            });
+        }).start();
+    }
+}
