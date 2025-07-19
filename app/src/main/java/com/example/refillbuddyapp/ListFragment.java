@@ -58,8 +58,13 @@ public class ListFragment extends Fragment {
                 // recyclerview mit den daten setup
                 setupRecyclerView(waterStations);
                 if (getContext() != null) {
-                    // nutzer informieren
-                    Toast.makeText(getContext(), waterStations.size() + " wasserstellen geladen", Toast.LENGTH_SHORT).show();
+                    // debug: namen der wasserstellen anzeigen
+                    StringBuilder stationNames = new StringBuilder();
+                    for (int i = 0; i < Math.min(3, waterStations.size()); i++) {
+                        if (i > 0) stationNames.append(", ");
+                        stationNames.append(waterStations.get(i).getName());
+                    }
+                    Toast.makeText(getContext(), "📝 " + waterStations.size() + " stationen: " + stationNames.toString(), Toast.LENGTH_LONG).show();
                 }
             }
             
@@ -77,6 +82,7 @@ public class ListFragment extends Fragment {
     // recyclerview mit echten daten setup
     private void setupRecyclerView(List<WaterStationAdapter.WaterStation> waterStations) {
         this.waterStations = waterStations;
+        
         // adapter erstellen und setzen
         adapter = new WaterStationAdapter(waterStations);
         recyclerView.setAdapter(adapter);
@@ -86,27 +92,47 @@ public class ListFragment extends Fragment {
     private void setupFallbackData() {
         waterStations = new ArrayList<>();
         
-        // hardcoded beispiel daten (wie am anfang)
+        // hardcoded beispiel daten mit echten adressen
         waterStations.add(new WaterStationAdapter.WaterStation(
             "Alexanderplatz Brunnen", 
-            "Großer Trinkbrunnen am Alexanderplatz, immer verfügbar",
+            "Alexanderplatz 1, 10178 Berlin",
             52.5200, 13.4050
         ));
         
         waterStations.add(new WaterStationAdapter.WaterStation(
             "Potsdamer Platz Station", 
-            "Wasserstation beim Sony Center, sehr sauber",
+            "Potsdamer Platz 1, 10785 Berlin",
             52.5094, 13.3759
         ));
         
         waterStations.add(new WaterStationAdapter.WaterStation(
             "Tiergarten Wasserspender", 
-            "Mitten im Park, perfekt für Spaziergänge",
+            "Großer Tiergarten, 10557 Berlin",
             52.5144, 13.3501
+        ));
+        
+        waterStations.add(new WaterStationAdapter.WaterStation(
+            "Hackescher Markt Brunnen", 
+            "Hackescher Markt 2, 10178 Berlin",
+            52.5225, 13.4014
+        ));
+        
+        waterStations.add(new WaterStationAdapter.WaterStation(
+            "Friedrichshain Wasserstelle", 
+            "Boxhagener Straße 15, 10245 Berlin",
+            52.5132, 13.4553
         ));
         
         // adapter mit fallback daten
         adapter = new WaterStationAdapter(waterStations);
         recyclerView.setAdapter(adapter);
+    }
+    
+    // fragment wird wieder sichtbar - daten neu laden
+    @Override
+    public void onResume() {
+        super.onResume();
+        // daten neu laden wenn fragment wieder sichtbar wird
+        loadWaterStations();
     }
 } 

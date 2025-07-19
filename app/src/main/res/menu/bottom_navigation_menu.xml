@@ -12,11 +12,6 @@
         android:title="Liste" />
     
     <item
-        android:id="@+id/nav_favorites"
-        android:icon="@android:drawable/star_big_on"
-        android:title="Favoriten" />
-    
-    <item
         android:id="@+id/nav_add"
         android:icon="@android:drawable/ic_menu_add"
         android:title="Hinzufügen" />

@@ -3,7 +3,9 @@ package com.example.refillbuddyapp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // diese klasse lädt die daten aus firebase
 // hab ich nach der vorlesung über firebase gemacht
@@ -71,16 +73,21 @@ public class FirebaseDataLoader {
                 });
     }
     
-    // neue wasserstation hinzufügen (für später)
+    // neue wasserstation hinzufügen
     public void addWaterStation(String name, String address, double latitude, double longitude, DataLoadCallback callback) {
-        // neue station erstellen
-        WaterStationAdapter.WaterStation station = new WaterStationAdapter.WaterStation(name, address, latitude, longitude);
+        // daten als map für firestore vorbereiten
+        Map<String, Object> stationData = new HashMap<>();
+        stationData.put("name", name);
+        stationData.put("address", address);
+        stationData.put("latitude", latitude);
+        stationData.put("longitude", longitude);
         
         // zu firebase hinzufügen
         db.collection("trinkbrunnen")
-                .add(station)
+                .add(stationData)
                 .addOnSuccessListener(documentReference -> {
-                    // wenn erfolgreich, callback aufrufen
+                    // wenn erfolgreich, station objekt erstellen
+                    WaterStationAdapter.WaterStation station = new WaterStationAdapter.WaterStation(name, address, latitude, longitude);
                     List<WaterStationAdapter.WaterStation> singleStation = new ArrayList<>();
                     singleStation.add(station);
                     callback.onDataLoaded(singleStation);

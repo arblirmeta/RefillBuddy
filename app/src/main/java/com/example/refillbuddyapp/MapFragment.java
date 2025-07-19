@@ -16,26 +16,21 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.List;
 
-// das ist das fragment für die karte
-// google maps war ziemlich schwer zu implementieren
+// fragment für die karte
 public class MapFragment extends Fragment implements OnMapReadyCallback {
     
-    // google map objekt
     private GoogleMap mMap;
-    // für daten aus firebase
     private FirebaseDataLoader dataLoader;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // data loader initialisieren
         dataLoader = new FirebaseDataLoader();
     }
     
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // layout inflaten
         return inflater.inflate(R.layout.fragment_map, container, false);
     }
     
@@ -43,10 +38,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        // map fragment finden und async laden
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
-            mapFragment.getMapAsync(this); // callback wird aufgerufen wenn karte fertig ist
+            mapFragment.getMapAsync(this);
         }
     }
     
@@ -66,6 +60,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         loadWaterStations();
     }
     
+    // fragment wird wieder sichtbar - daten neu laden
+    @Override
+    public void onResume() {
+        super.onResume();
+        // wenn karte bereit ist, daten neu laden
+        if (mMap != null) {
+            mMap.clear(); // alte marker löschen
+            loadWaterStations(); // neue daten laden
+        }
+    }
+    
     // wasserstellen aus firebase laden
     private void loadWaterStations() {
         dataLoader.loadWaterStations(new FirebaseDataLoader.DataLoadCallback() {
@@ -74,8 +79,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 // alle wasserstellen als marker zur karte hinzufügen
                 addWaterStationsToMap(waterStations);
                 if (getContext() != null) {
-                    // nutzer informieren wieviele stationen geladen wurden
-                    Toast.makeText(getContext(), waterStations.size() + " wasserstellen geladen", Toast.LENGTH_SHORT).show();
+                    // debug: namen der wasserstellen anzeigen
+                    StringBuilder stationNames = new StringBuilder();
+                    for (int i = 0; i < Math.min(3, waterStations.size()); i++) {
+                        if (i > 0) stationNames.append(", ");
+                        stationNames.append(waterStations.get(i).getName());
+                    }
+                    Toast.makeText(getContext(), "🗺️ " + waterStations.size() + " stationen: " + stationNames.toString(), Toast.LENGTH_LONG).show();
                 }
             }
             
@@ -109,21 +119,35 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         LatLng alex = new LatLng(52.520008, 13.404954);
         mMap.addMarker(new MarkerOptions()
                 .position(alex)
-                .title("Wasserstelle Alex")
-                .snippet("kostenlos, immer offen"));
+                .title("Alexanderplatz Brunnen")
+                .snippet("Alexanderplatz 1, 10178 Berlin"));
 
         // potsdamer platz
         LatLng potsdamer = new LatLng(52.5096, 13.3765);
         mMap.addMarker(new MarkerOptions()
                 .position(potsdamer)
-                .title("Wasserstelle Potsdamer Platz")
-                .snippet("beim shopping center"));
+                .title("Potsdamer Platz Station")
+                .snippet("Potsdamer Platz 1, 10785 Berlin"));
 
         // tiergarten
         LatLng tiergarten = new LatLng(52.5144, 13.3501);
         mMap.addMarker(new MarkerOptions()
                 .position(tiergarten)
-                .title("Wasserstelle Park")
-                .snippet("im tiergarten"));
+                .title("Tiergarten Wasserspender")
+                .snippet("Großer Tiergarten, 10557 Berlin"));
+        
+        // hackescher markt
+        LatLng hackescher = new LatLng(52.5225, 13.4014);
+        mMap.addMarker(new MarkerOptions()
+                .position(hackescher)
+                .title("Hackescher Markt Brunnen")
+                .snippet("Hackescher Markt 2, 10178 Berlin"));
+        
+        // friedrichshain
+        LatLng friedrichshain = new LatLng(52.5132, 13.4553);
+        mMap.addMarker(new MarkerOptions()
+                .position(friedrichshain)
+                .title("Friedrichshain Wasserstelle")
+                .snippet("Boxhagener Straße 15, 10245 Berlin"));
     }
 } 

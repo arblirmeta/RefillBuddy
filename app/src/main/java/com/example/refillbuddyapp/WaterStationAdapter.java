@@ -33,7 +33,7 @@ public class WaterStationAdapter extends RecyclerView.Adapter<WaterStationAdapte
         WaterStation station = waterStations.get(position);
         holder.titleTextView.setText(station.getName());
         holder.descriptionTextView.setText(station.getDescription());
-        holder.distanceTextView.setText("ca. 0.5 km entfernt"); // TODO: echte distanz berechnen
+        holder.distanceTextView.setText("in der Nähe"); // einfach statisch
     }
     
     @Override

@@ -22,21 +22,22 @@
             android:textStyle="bold"
             android:layout_marginBottom="4dp" />
 
-        <!-- beschreibung -->
+        <!-- adresse -->
         <TextView
             android:id="@+id/tv_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Beschreibung hier"
+            android:text="Adresse hier"
             android:textSize="14sp"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="8dp"
+            android:textColor="@android:color/darker_gray" />
 
         <!-- distanz -->
         <TextView
             android:id="@+id/tv_distance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="0.5 km entfernt"
+            android:text="in der Nähe"
             android:textSize="12sp"
             android:textColor="#666" />
 
