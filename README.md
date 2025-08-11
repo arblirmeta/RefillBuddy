@@ -10,3 +10,7 @@ Das ist meine Android App für App Entwicklung mit Android SoSe-2025. Die App so
 
 ![Ablaufdiagramm](app/src/main/assets/Ablaufdiagramm.png)
 
+
+## Download
+
+[📥 RefillBuddy APK herunterladen](https://github.com/arblirmeta/RefillBuddy/raw/main/app/release/refillbuddy.apk)
